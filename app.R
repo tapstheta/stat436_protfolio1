@@ -29,8 +29,6 @@ ui <- fluidPage(
 # Define the server
 server <- function(input, output) {
   
-  # Load the dataset
-  
   # Define the dotplot function
   dotplot <- function(df, y_var, smoke) {
     if (smoke) {
