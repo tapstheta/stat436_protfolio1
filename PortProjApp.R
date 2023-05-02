@@ -21,6 +21,7 @@ library(readr)
 library(caret)
 library(DALEX)
 
+#load and clean data
 wage <- read.csv("https://uwmadison.box.com/shared/static/qk9mbulhomf72yzolt8dkz7tqan3ihqf.csv")
 college <- read.csv("https://uwmadison.box.com/shared/static/u0cjn8tytes6oemp06ec74bgkijzg324.csv")
 wage <- subset(wage, Year >= 2013 & Year <= 2020)
@@ -30,6 +31,7 @@ college <- college %>% rename(state = State)
 years <- 2013:2019
 names(years) <- years
 
+#acs data tidycensus package
 acs_data <- map_dfr(years, ~{
   get_acs(
     geography = "state",
@@ -40,7 +42,7 @@ acs_data <- map_dfr(years, ~{
 }, .id = "year")
 vars <- c("B01002_001", "B19001_001", "B15003_001", "B27001_001")
 
-
+#widening ACS to state data for each year
 acs_data_wide <- acs_data %>% 
   #select(year, NAME, vars) %>%
   pivot_wider(names_from = variable, values_from = estimate) %>%
@@ -50,6 +52,7 @@ acs_data_wide <- acs_data %>%
 acs_data_wide$year = as.numeric(acs_data_wide$year)
 names(acs_data_wide)[names(acs_data_wide) %in% c("B01002_001", "B19001_001", "B15003_001", "B27001_001")] <- c("age", "income", "educ", "insurance")
 
+#us heatmap function
 usmap <- function(df, vals) {
   plot_usmap(data = df, values = vals,labels = FALSE) +
     scale_fill_continuous(low = "white",high = "blue",name = "Production", 
@@ -63,6 +66,7 @@ paribus_helper <- function(user_year){
   acs_data_wide_2019 <- subset(acs_data_wide, year == 2019, select = -c(year, NAME))
 } 
 
+#ceteris paribus graph
 cetparibus <- function(user_year){
   acs_data_wide_year <- subset(acs_data_wide, year == user_year, select = -c(year, NAME))
   x <- select(acs_data_wide_year, -income)
@@ -100,7 +104,7 @@ ui <- fluidPage(
 )
 
 server <- function(input, output) {
-  # Create a reactive expression for the subset of college data based on user inputs
+  # Reactive expression for the subset of college data based on user inputs
   college_subset <- reactive({
     college[college$Year == input$year & college$Type == input$type, ]
   })
@@ -109,12 +113,12 @@ server <- function(input, output) {
     wage[wage$Year == input$year, ]
   })
   
-  # Create a heatmap of tuition using the usmap function
+  # Heatmap of tuition using the usmap function
   output$tuition_map <- renderPlot({
     usmap(df = college_subset(), "Value")
   })
   
-  # Create a heatmap of minimum wage using the usmap function
+  # Heatmap of minimum wage using the usmap function
   output$wage_map <- renderPlot({
     usmap(df = wage_subset(), "State.Minimum.Wage")
   })
